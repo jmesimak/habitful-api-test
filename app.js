@@ -18,7 +18,8 @@ app.use(function(req, res, next) {
 app.set('port', (process.env.PORT || 3000));
 
 app.use((req, res, next) => {
-  if (req.headers.token) {
+  console.log(req.headers)
+  if (req.headers.token && !req.headers.token !== 'undefined') {
     User.findBySessionToken(knex, req.headers.token)
       .then((users) => {
         let u = users[0]
