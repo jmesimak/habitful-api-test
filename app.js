@@ -15,6 +15,8 @@ app.use(function(req, res, next) {
   next();
 });
 
+app.set('port', (process.env.PORT || 3000));
+
 app.use((req, res, next) => {
   if (req.headers.token) {
     User.findBySessionToken(knex, req.headers.token)
@@ -29,7 +31,6 @@ app.use((req, res, next) => {
   } else {
     next()
   }
-
 })
 
 var uc = new UserController(knex)
@@ -43,7 +44,7 @@ app.get('/', function (req, res) {
   res.send('Hello World!\n')
 })
 
-app.listen(process.env.PORT || 3000, function () {
+app.listen(app.get('port'), function () {
   console.log('Example app listening on port 3000!')
 })
 
