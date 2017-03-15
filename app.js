@@ -11,6 +11,7 @@ var knex = require('knex')(knexConfig);
 app.use(bodyParser.json())
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, token");
   next();
 });
@@ -18,7 +19,6 @@ app.use(function(req, res, next) {
 app.set('port', (process.env.PORT || 3000));
 
 app.use((req, res, next) => {
-  console.log(req.headers)
   if (req.headers.token && req.headers.token !== 'undefined') {
     User.findBySessionToken(knex, req.headers.token)
       .then((users) => {

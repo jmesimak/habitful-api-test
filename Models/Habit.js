@@ -40,7 +40,32 @@ class Habit {
           resolve(this.habits)
         })
     })
+  }
 
+  static getHabit(knex, uuid) {
+    return knex('habits')
+      .where({uuid: uuid})
+      .then((habits) => {
+        this.habit = habits[0]
+        return knex('habit_instances').where({habit_uuid: this.habit.uuid})
+      })
+      .then((habitInstances) => {
+        this.habit.instances = habitInstances
+        return this.habit
+      })
+  }
+
+  static delete(knex, uuid) {
+    return knex('habit_instances')
+      .where({habit_uuid: uuid})
+      .del()
+      .then(() => knex('habits').where({uuid: uuid}).del())
+  }
+
+  static removeInstance(knex, habit_uuid, instance_time) {
+    return knex('habit_instances')
+      .where({habit_uuid: habit_uuid, created_at: instance_time})
+      .del()
   }
 
 }
