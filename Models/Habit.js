@@ -1,3 +1,5 @@
+var uuid = require('uuid')
+
 class Habit {
 
   constructor(uuid, owner, name, type, goal, description) {
@@ -66,6 +68,22 @@ class Habit {
     return knex('habit_instances')
       .where({habit_uuid: habit_uuid, created_at: instance_time})
       .del()
+  }
+
+  static createPool(knex) {
+    let poolUuid = uuid.v4()
+    return knex('habit_pools')
+      .insert({uuid: poolUuid, name: 'Unnamed'})
+      .returning('uuid')
+  }
+
+  static addParticipantToPool(knex, participant, habit, pool) {
+    console.log("bien")
+    return knex('habit_pool_participants')
+      .insert({participant: participant, habit: habit, pool: pool})
+      .catch((e) => {
+        console.log(e)
+      })
   }
 
 }

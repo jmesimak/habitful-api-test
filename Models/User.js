@@ -56,6 +56,18 @@ class User {
       .where({email: email})
   }
 
+  static getGoals(knex, uuid) {
+    console.log('euuu')
+    return knex('goals')
+      .where({owner: uuid})
+  }
+
+  static setGoalAsDone(knex, uuid, goalUuid) {
+    return knex('goals')
+      .where({uuid: goalUuid})
+      .update({completed_at: new Date()})
+  }
+
 }
 
 module.exports = User

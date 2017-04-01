@@ -18,17 +18,25 @@ app.use(function(req, res, next) {
 
 app.set('port', (process.env.PORT || 3000));
 
-app.use((req, res, next) => {
-  if (req.headers.token && req.headers.token !== 'undefined') {
+function checkAuth(req) {
+  return new Promise((resolve, reject) => {
     User.findBySessionToken(knex, req.headers.token)
       .then((users) => {
         let u = users[0]
         req.user = u
-        next()
+        resolve()
       })
       .catch((exception) => {
-        res.send(exception)
+        reject(exception)
       })
+  })
+}
+
+app.use((req, res, next) => {
+  if (req.headers.token && req.headers.token !== 'undefined') {
+    checkAuth(req)
+      .then(() => next())
+      .catch((e) => res.send(e))
   } else {
     next()
   }
@@ -46,7 +54,7 @@ app.get('/', function (req, res) {
 })
 
 app.listen(app.get('port'), function () {
-  console.log('Example app listening on port 3000!')
+  console.log('Habitful up!')
 })
 
 module.exports = app
