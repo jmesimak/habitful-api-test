@@ -9,45 +9,68 @@ class HabitController {
     this.knex = knex
   }
 
+  _addHabitInstance(req, res) {
+    Habit
+      .getHabit(this.knex, req.params.id)
+      .then((habit) => {
+        let toCreateString = moment(req.body.created_at).format('MMMM Do YYYY')
+        let habitInstances = habit.instances.map((hi) => moment(hi.created_at).format('MMMM Do YYYY'))
+        if (habitInstances.indexOf(toCreateString) !== -1) throw 'Instance already exists for this date'
+        return Habit.addInstance(this.knex, req.params.id, req.body.created_at)
+      })
+      .then((asd) => res.status(201).json({message: 'created'}))
+      .catch((err) => res.status(500).send(err)) 
+  }
+
+  _getHabits(req, res) {
+    Habit.getHabitsByUser(this.knex, req.user.uuid)
+      .then((habits) => res.send(habits))
+  }
+
+  _addHabit(req, res) {
+    let id = uuid.v4();
+    let h = new Habit(id, req.user.uuid, req.body.name, req.body.type, req.body.goal, req.body.description)
+    h.saveHabit(this.knex)
+      .then((asd) => res.json({token: id}))
+      .catch((err) => res.send('nah mon'))
+  }
+
+  _getHabit(req, res) {
+     Habit.getHabit(this.knex, req.params.id)
+      .then((habit) => {
+        if (habit.owner === req.user.uuid) {
+          res.json(habit)
+        } else {
+          res.status(403).json({message: 'Up yours'})
+        }
+      })
+      .catch((error) => {
+        res.status(500).json({something: 'went wrong'})
+      });
+  }
+
+  _deleteInstance(req, res) {
+    Habit.getHabitsByUser(this.knex, req.user.uuid)
+      .then((habits) => habits.map(h => h.uuid))
+      .then((uuids) => {
+        if (uuids.indexOf(req.params.uuid) !== -1) {
+          Habit
+            .removeInstance(this.knex, req.params.uuid, req.body.created_at)
+            .then(() => res.json({message: 'yup'}))
+        } else {
+          res.status(400).send({message: 'Too bad this aint yours'})
+        }
+      })
+      .catch((e) => console.log)
+  }
+
   loadRoutes(app) {
-    app.post('/habits', (req, res) => {
-      let h = new Habit(uuid.v4(), req.user.uuid, req.body.name, req.body.type, req.body.goal, req.body.description)
-      h.saveHabit(this.knex)
-        .then((asd) => res.send('yah mon'))
-        .catch((err) => res.send('nah mon'))
-    })
+    app.post('/habits', this._addHabit.bind(this));
+    app.post('/habits/:id/instance', this._addHabitInstance.bind(this));
+    app.get('/habits', this._getHabits.bind(this));
 
-    app.post('/habits/:id/instance', (req, res) => {
-      Habit
-        .getHabit(this.knex, req.params.id)
-        .then((habit) => {
-          let toCreateString = moment(req.body.created_at).format('MMMM Do YYYY')
-          let habitInstances = habit.instances.map((hi) => moment(hi.created_at).format('MMMM Do YYYY'))
-          if (habitInstances.indexOf(toCreateString) !== -1) throw 'Instance already exists for this date'
-          return Habit.addInstance(this.knex, req.params.id, req.body.created_at)
-        })
-        .then((asd) => res.send('yah'))
-        .catch((err) => res.send(err))
-    })
-
-    app.get('/habits', (req, res) => {
-      Habit.getHabitsByUser(this.knex, req.user.uuid)
-        .then((habits) => res.send(habits))
-    })
-
-    app.get('/habits/:id', (req, res) => {
-      Habit.getHabit(this.knex, req.params.id)
-        .then((habit) => {
-          if (habit.owner === req.user.uuid) {
-            res.json(habit)
-          } else {
-            res.status(403).json({message: 'Up yours'})
-          }
-        })
-        .catch((error) => {
-          res.status(500).json({something: 'went wrong'})
-        })
-    })
+    app.get('/habits/:id', this._getHabit.bind(this));
+    app.delete('/habits/:uuid/instances', this._deleteInstance.bind(this));
 
     app.delete('/habits/:uuid', (req, res) => {
       Habit.getHabitsByUser(this.knex, req.user.uuid)
@@ -64,21 +87,6 @@ class HabitController {
         .catch((e) => console.log)
     })
 
-    app.delete('/habits/:uuid/instances', (req, res) => {
-      console.log(`Removing ${req.body.created_at} from ${req.params.uuid}`)
-      Habit.getHabitsByUser(this.knex, req.user.uuid)
-        .then((habits) => habits.map(h => h.uuid))
-        .then((uuids) => {
-          if (uuids.indexOf(req.params.uuid) !== -1) {
-            Habit
-              .removeInstance(this.knex, req.params.uuid, req.body.created_at)
-              .then(() => res.send({message: 'yup'}))
-          } else {
-            res.status(400).send({message: 'Too bad this aint yours'})
-          }
-        })
-        .catch((e) => console.log)
-    })
 
     app.post('/habit_pools', (req, res) => {
       let self = this
